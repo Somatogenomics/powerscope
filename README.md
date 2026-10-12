@@ -114,13 +114,6 @@ R -e 'shiny::runApp("app")'
 Tested with R 4.3.3, data.table 1.14.10, ggplot2 3.4.4, shiny 1.8.0,
 bslib 0.6.1, testthat 3.2.1.
 
-## Deployment
-
-`.github/workflows/pages.yaml` builds the pkgdown site into `docs/`, exports
-the app with `shinylive::export()` into `docs/app/`, and deploys to GitHub
-Pages. In the repository settings, set Pages > Source to "GitHub Actions".
-`.github/workflows/R-CMD-check.yaml` runs `R CMD check` on Linux, macOS and
-Windows.
 
 ## References
 
