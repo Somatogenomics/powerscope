@@ -1,0 +1,35 @@
+Package: powerscope
+Title: Power, Sample Size, and Type S/M Errors for Genomics Study Designs
+Version: 0.1.0
+Authors@R:
+    person("Abdulhadi", "Kobiowu", , "somatohadidas@gmail.com", role = c("aut", "cre"))
+Description: Computes statistical power, required sample size, minimum
+    detectable effect, sign error rate (Type S) and exaggeration ratio
+    (Type M) for two-group comparisons of means and proportions,
+    negative binomial RNA-seq differential expression, pooled-sequencing
+    allele-frequency differences, case-control allelic association and
+    quantitative-trait association. Every design is reduced to an effect
+    and its standard error and passed through one shared engine
+    following Gelman and Carlin (2014) <doi:10.1177/1745691614551642>.
+    Per-test significance levels that control the false discovery rate
+    across many tests follow Jung (2005) <doi:10.1093/bioinformatics/bti456>.
+License: MIT + file LICENSE
+Encoding: UTF-8
+Roxygen: list(markdown = TRUE)
+RoxygenNote: 7.3.1
+Depends: R (>= 4.1)
+Imports:
+    data.table,
+    stats
+Suggests:
+    ggplot2,
+    knitr,
+    MASS,
+    rmarkdown,
+    shiny,
+    bslib,
+    testthat (>= 3.0.0)
+Config/testthat/edition: 3
+VignetteBuilder: knitr
+URL: https://github.com/Somatogenomics/powerscope, https://somatogenomics.github.io/powerscope/
+BugReports: https://github.com/Somatogenomics/powerscope/issues

@@ -1,0 +1,8 @@
+.Rproj.user
+.Rhistory
+.RData
+docs/
+*.Rcheck/
+*.tar.gz
+inst/doc
+app/powerscope_core.R

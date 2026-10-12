@@ -1,0 +1,12 @@
+^LICENSE\.md$
+^README\.Rmd$
+^_pkgdown\.yml$
+^docs$
+^pkgdown$
+^app$
+^site$
+^\.github$
+^tools$
+^validation$
+^CITATION\.cff$
+^\.Rbuildignore$

@@ -1,0 +1,22 @@
+url: https://somatogenomics.github.io/powerscope/
+template:
+  bootstrap: 5
+  bslib:
+    primary: "#2a78d6"
+navbar:
+  structure:
+    left: [intro, app, reference, articles, news]
+    right: [search, github]
+  components:
+    app:
+      text: App
+      href: app/
+reference:
+  - title: Engine
+    contents: [ps_retrodesign, ps_retrodesign_sim]
+  - title: Designs
+    contents: [ps_means, ps_props, ps_rnaseq, ps_rnaseq_genes, ps_poolseq, ps_casecontrol, ps_qtl]
+  - title: Solvers and multiple testing
+    contents: [ps_sample_size, ps_mde, ps_fdr_alpha]
+  - title: Checking and plotting
+    contents: [ps_simulate, ps_plot]

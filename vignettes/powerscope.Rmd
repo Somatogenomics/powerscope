@@ -1,0 +1,154 @@
+---
+title: "Design calculations with powerscope"
+output: rmarkdown::html_vignette
+vignette: >
+  %\VignetteIndexEntry{Design calculations with powerscope}
+  %\VignetteEngine{knitr::rmarkdown}
+  %\VignetteEncoding{UTF-8}
+---
+
+```{r setup, include = FALSE}
+knitr::opts_chunk$set(collapse = TRUE, comment = "#>", fig.width = 8, fig.height = 3)
+library(powerscope)
+has_gg <- requireNamespace("ggplot2", quietly = TRUE)
+```
+
+## What the package computes
+
+Every design is reduced to a true effect *D* and the standard error *SE* of
+its estimate. One engine, `ps_retrodesign()`, then returns:
+
+| Column | Meaning |
+|---|---|
+| `power` | P(result is significant) |
+| `type_s` | P(estimate has the wrong sign \| significant) |
+| `exaggeration` | E(\|estimate\| \| significant) / \|D\| (Type M) |
+| `min_sig_ratio` | smallest overestimation any significant result can have |
+
+Power alone does not describe what a significant result from a weak design
+means. At low power, significant estimates are large overestimates and can
+have the wrong sign (Gelman & Carlin 2014). The Gelman, Hill & Vehtari (2020)
+Figure 16.1 design, true effect 2 with SE 8.1:
+
+```{r}
+ps_retrodesign(effect = 2, se = 8.1)
+```
+
+All inputs that describe biology (effect sizes, SDs, dispersions, allele
+frequencies, overdispersion, fraction of true effects) must come from your
+own pilot data, prior studies or the literature. The package has no defaults
+for them.
+
+## Means and proportions
+
+`ps_means()` is exact for the t-test on normal data, including the
+exaggeration ratio. `ps_props()` enumerates all binomial outcomes when that is
+feasible, so it is exact for the z-test actually run.
+
+```{r, eval = has_gg}
+r <- ps_means(delta = c(0.3, 0.5, 0.8), sd = 1, n1 = 3:60)
+ps_plot(r, "n1", group = "delta", target_power = 0.8)
+```
+
+```{r}
+ps_sample_size(ps_means, "n1", target_power = 0.8, delta = 0.5, sd = 1, link = list(n2 = 1))
+ps_props(p1 = 0.1, p2 = 0.2, n1 = 100, n2 = 150)
+```
+
+## RNA-seq differential expression
+
+Single gene, negative binomial with dispersion φ (Hart et al. 2013):
+
+```{r, eval = has_gg}
+r <- ps_rnaseq(log2fc = 1, mean_count = c(10, 50, 500), dispersion = 0.1, n1 = 2:15)
+ps_plot(r, "n1", group = "mean_count", target_power = 0.8)
+```
+
+Across all genes, using means and dispersions estimated from your own data,
+with the per-gene level that gives BH FDR *q* (Jung 2005):
+
+```{r, eval = FALSE}
+library(DESeq2)
+dds <- DESeq(dds)   # pilot or previous experiment, same tissue/platform
+genes <- data.frame(gene_id = rownames(dds),
+                    mean_count = mcols(dds)$baseMean,
+                    dispersion = mcols(dds)$dispersion)
+res <- ps_rnaseq_genes(genes, log2fc = 1, n1 = 4, q = 0.05, pi1 = 0.1)
+res$summary
+```
+
+```{r}
+set.seed(1)   # simulated table for illustration only
+genes <- data.frame(mean_count = rlnorm(3000, log(100), 1.5),
+                    dispersion = rlnorm(3000, log(0.1), 0.6))
+sapply(3:8, function(n)
+  ps_rnaseq_genes(genes, log2fc = 1, n1 = n, q = 0.05, pi1 = 0.1)$summary$mean_power)
+```
+
+`exaggeration_among_discoveries` in the summary is the expected inflation of
+the raw fold change among DE genes that reach significance. This is why
+shrunken estimates (e.g. `DESeq2::lfcShrink`) should be reported for ranked
+gene lists.
+
+## Pooled sequencing
+
+Two-stage binomial sampling: chromosomes into the pool, then reads from the
+pool. `overdispersion` (≥ 1) inflates the variance for unequal individual
+contributions and library effects; estimate it from replicate pools.
+
+```{r, eval = has_gg}
+r <- ps_poolseq(p1 = 0.5, p2 = 0.6, pool_size1 = c(20, 50, 200), depth1 = seq(10, 300, 5))
+ps_plot(r, "depth1", group = "pool_size1")
+```
+
+Read depth beyond the number of chromosomes in the pool adds little. The
+`1/(ploidy * pool_size)` term sets a floor on the variance.
+
+## Association
+
+```{r}
+ps_casecontrol(maf = 0.2, odds_ratio = 1.3, n_cases = c(1000, 3000, 5000), n_controls = 5000)
+ps_mde(ps_qtl, "beta_sd", 0.8, maf = 0.25, n = 2000, interval = c(1e-3, 1))
+```
+
+The default `alpha = 5e-8` is the human genome-wide convention. For other
+species or marker sets, derive the threshold from the effective number of
+independent tests in your data.
+
+## Checking an approximation by simulation
+
+`ps_simulate()` runs the test a user would actually run, with estimated
+nuisance parameters, and returns empirical power, Type S and exaggeration.
+
+```{r}
+p <- list(p1 = 0.2, p2 = 0.4, pool_size1 = 30, depth1 = 40, n_pools1 = 3)
+do.call(ps_poolseq, p)[, .(power, type_s, exaggeration)]
+ps_simulate("poolseq", p, n_sims = 2e4, seed = 1)
+```
+
+The full analytic-versus-simulation comparison for every design is produced
+by `validation/run_validation.R` in the source repository.
+
+## Assumptions
+
+* Analytic results for RNA-seq, pool-seq and case-control use Wald tests with
+  asymptotic normal estimates. With very few replicates, rare alleles or low
+  counts, the test actually run can differ by a few percentage points of
+  power; check with `ps_simulate()`.
+* RNA-seq power assumes known dispersion. DESeq2/edgeR estimate and shrink it,
+  so realised power with 2–3 replicates is lower.
+* Pool-seq assumes equal contributions of individuals unless
+  `overdispersion` is set.
+* Association assumes Hardy-Weinberg equilibrium, a multiplicative
+  (case-control) or additive (QTL) model, and no population structure.
+* A single assumed true effect is a model input. Report results over a range
+  of plausible effects.
+
+## References
+
+* Gelman A, Carlin J (2014). *Perspect Psychol Sci* 9:641–651. doi:10.1177/1745691614551642
+* Gelman A, Hill J, Vehtari A (2020). *Regression and Other Stories*, ch. 16. Cambridge University Press.
+* Hart SN et al. (2013). *J Comput Biol* 20:970–978. doi:10.1089/cmb.2012.0283
+* Jung SH (2005). *Bioinformatics* 21:3097–3104. doi:10.1093/bioinformatics/bti456
+* Gautier M et al. (2013). *Mol Ecol* 22:3766–3779. doi:10.1111/mec.12360
+* Pe'er I et al. (2008). *Genet Epidemiol* 32:381–385. doi:10.1002/gepi.20303

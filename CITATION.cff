@@ -1,0 +1,12 @@
+cff-version: 1.2.0
+message: "If you use this software, please cite it as below."
+title: "powerscope: power, sample size, and Type S/M errors for genomics study designs"
+version: 0.1.0
+date-released: 2026-10-12
+authors:
+  - family-names: Kobiowu
+    given-names: Abdulhadi
+    affiliation: Virginia Tech
+license: MIT
+repository-code: "https://github.com/Somatogenomics/powerscope"
+url: "https://somatogenomics.github.io/powerscope/"
